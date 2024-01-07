@@ -64,6 +64,19 @@ def mul_magnitudes(l, r, stft):
 
     return y
 
+def mix_magnitudes(l, r, stft):
+
+    m = stft.stft(l + r)
+    l = stft.stft(l)
+    r = stft.stft(r)
+
+    mag = (np.abs(l) - np.abs(r) + np.abs(m)) / 2
+    phi = np.angle(m)
+
+    y = stft.istft(mag * np.exp(1j * phi))
+
+    return y
+
 @click.command('azimuth', help='simple stereo sound source separation', no_args_is_help=True, context_settings=dict(help_option_names=['-h', '--help']))
 @click.option('-i', '--input', required=True, help='input stereo .wav file name')
 @click.option('-o', '--output', required=True, help='output mono .wav file name')
@@ -87,7 +100,8 @@ def main(input, output, swap, window, overlap, debug):
 
     # y = sub_channels(l, r, stft)
     # y = sum_magnitudes(l, r, stft)
-    y = mul_magnitudes(l, r, stft) * 42
+    # y = mul_magnitudes(l, r, stft) * 42
+    y = mix_magnitudes(l, r, stft)
 
     y = np.clip(y, -1, +1)
     write(output, y, sr)
