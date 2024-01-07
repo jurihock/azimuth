@@ -32,7 +32,39 @@ def write(path, data, samplerate):
 
     sf.write(path, data, samplerate, format='wav', subtype='PCM_24')
 
-@click.command('azimuth', help='stereo sound source separation', no_args_is_help=True, context_settings=dict(help_option_names=['-h', '--help']))
+def sub_channels(l, r, stft):
+
+    y = l - r
+
+    return y
+
+def sum_magnitudes(l, r, stft):
+
+    m = stft.stft(l + r)
+    l = stft.stft(l)
+    r = stft.stft(r)
+
+    mag = np.abs(l) - np.abs(r)
+    phi = np.angle(m)
+
+    y = stft.istft(mag * np.exp(1j * phi))
+
+    return y
+
+def mul_magnitudes(l, r, stft):
+
+    m = stft.stft(l + r)
+    l = stft.stft(l)
+    r = stft.stft(r)
+
+    mag = np.abs(l) * np.abs(r)
+    phi = np.angle(m)
+
+    y = stft.istft(mag * np.exp(1j * phi))
+
+    return y
+
+@click.command('azimuth', help='simple stereo sound source separation', no_args_is_help=True, context_settings=dict(help_option_names=['-h', '--help']))
 @click.option('-i', '--input', required=True, help='input stereo .wav file name')
 @click.option('-o', '--output', required=True, help='output mono .wav file name')
 @click.option('-s', '--swap', is_flag=True, default=False, help='swap source channels')
@@ -52,20 +84,12 @@ def main(input, output, swap, window, overlap, debug):
 
     l = x[..., 0]
     r = x[..., 1]
-    m = (l + r) / 2
-    d = (l - r)
 
-    l = stft.stft(l)
-    r = stft.stft(r)
-    m = stft.stft(m)
-    d = stft.stft(d)
+    # y = sub_channels(l, r, stft)
+    # y = sum_magnitudes(l, r, stft)
+    y = mul_magnitudes(l, r, stft) * 42
 
-    mag = (np.abs(l) - np.abs(r)) / 1
-    phi = np.angle(m)
-
-    y = stft.istft(mag * np.exp(1j * phi))
     y = np.clip(y, -1, +1)
-
     write(output, y, sr)
 
 if __name__ == '__main__':
