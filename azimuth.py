@@ -64,13 +64,16 @@ def mul_magnitudes(l, r, stft):
 
     return y
 
-def mix_magnitudes(l, r, stft):
+def mix_magnitudes(l, r, w, stft):
 
     m = stft.stft(l + r)
     l = stft.stft(l)
     r = stft.stft(r)
 
-    mag = (np.abs(l) - np.abs(r) + np.abs(m)) / 2
+    w = np.array(w)
+    w.resize(3)
+
+    mag = (w[0] * np.abs(l) + w[1] * np.abs(r) + w[2] * np.abs(m)) / 3
     phi = np.angle(m)
 
     y = stft.istft(mag * np.exp(1j * phi))
@@ -101,7 +104,7 @@ def main(input, output, swap, window, overlap, debug):
     # y = sub_channels(l, r, stft)
     # y = sum_magnitudes(l, r, stft)
     # y = mul_magnitudes(l, r, stft) * 42
-    y = mix_magnitudes(l, r, stft)
+    y = mix_magnitudes(l, r, (+1, -1, +1), stft)
 
     y = np.clip(y, -1, +1)
     write(output, y, sr)
